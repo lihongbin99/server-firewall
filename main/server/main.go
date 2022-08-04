@@ -110,6 +110,7 @@ func newConn(id int, conn *net.TCPConn) {
 	lastPingTime := time.Now()
 	lastPongTime := time.Now()
 
+	name := ""
 	var err error = nil
 	for err == nil {
 		select {
@@ -134,12 +135,13 @@ func newConn(id int, conn *net.TCPConn) {
 				log.Trace(id, "receiver Pong", m.Date)
 				lastPongTime = time.Now()
 			case *msg.NameMessage:
-				clients[id] = Client{ip: ip, name: m.Name}
-				if createErr := tencent.Create(ip, m.Name); err == nil {
-					log.Info("create", ip, "success")
+				name = m.Name
+				clients[id] = Client{ip: ip, name: name}
+				if createErr := tencent.Create(ip, name); err == nil {
+					log.Info("create", name, ip, "success")
 					err = clientConn.WriteMessage(&msg.NameResultMessage{Ip: ip, Msg: "success"})
 				} else {
-					log.Error("create", ip, "error:", createErr)
+					log.Error("create", name, ip, "error:", createErr)
 					err = clientConn.WriteMessage(&msg.NameResultMessage{Ip: ip, Msg: createErr.Error()})
 				}
 			}
@@ -150,7 +152,7 @@ func newConn(id int, conn *net.TCPConn) {
 
 	// 等待一段时间后断开连接
 	delete(clients, id)
-	go func(ip string, interval int) {
+	go func(ip, name string, interval int) {
 		time.Sleep(time.Duration(interval*10) * time.Second)
 		for _, client := range clients {
 			if client.ip == ip {
@@ -158,9 +160,9 @@ func newConn(id int, conn *net.TCPConn) {
 			}
 		}
 		if deleteErr := tencent.Delete(ip); deleteErr == nil {
-			log.Info("delete", ip, "success")
+			log.Info("delete", name, ip, "success")
 		} else {
-			log.Error("delete", ip, "error:", deleteErr)
+			log.Error("delete", name, ip, "error:", deleteErr)
 		}
-	}(ip, clientConn.Interval)
+	}(ip, name, clientConn.Interval)
 }
