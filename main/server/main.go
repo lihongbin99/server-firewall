@@ -83,12 +83,13 @@ func newConn(id int, conn *net.TCPConn) {
 		return
 	}
 	ip := clientAddr[:index]
-	log.Info(ip)
 
 	log.Debug(id, "new connect:", clientAddr)
 
 	clientConn := io.NewTCP(conn)
-	clientConn.ServerInit(id)
+	if !clientConn.ServerInit(id) {
+		return
+	}
 	log.Info(id, "new client:", clientAddr)
 
 	// 处理读取请求

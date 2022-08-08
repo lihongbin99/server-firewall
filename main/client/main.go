@@ -56,7 +56,9 @@ func start() (success bool) {
 	log.Debug("connect server success:", serverAddr)
 
 	serverConn := io.NewTCP(conn)
-	serverConn.ClientInit()
+	if !serverConn.ClientInit() {
+		return
+	}
 	log.Info("new server:", serverAddr)
 
 	// 处理读取请求
