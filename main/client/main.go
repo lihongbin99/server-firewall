@@ -99,10 +99,12 @@ func start() (success bool) {
 				log.Trace("receiver PingMessage", m.Date)
 				err = serverConn.WriteMessage(&msg.PoneMessage{Date: time.Now()})
 			case *msg.NameResultMessage:
-				if m.Msg == "success" {
-					log.Info("create success:", m.Ip)
-				} else {
-					log.Error("create", m.Ip, "error:", m.Msg)
+				for _, details := range m.Details {
+					if details.Msg == "success" {
+						log.Info(details.Name, "create success:", details.Ip)
+					} else {
+						log.Error(details.Name, "create", details.Ip, "error:", details.Msg)
+					}
 				}
 			}
 		}

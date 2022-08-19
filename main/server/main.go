@@ -8,7 +8,6 @@ import (
 	"security-network/common/io"
 	"security-network/common/logger"
 	"security-network/common/msg"
-	"security-network/server/tencent"
 	"strings"
 	"time"
 )
@@ -138,13 +137,17 @@ func newConn(id int, conn *net.TCPConn) {
 			case *msg.NameMessage:
 				name = m.Name
 				clients[id] = Client{ip: ip, name: name}
-				if createErr := tencent.Create(ip, name); err == nil {
-					log.Info("create", name, ip, "success")
-					err = clientConn.WriteMessage(&msg.NameResultMessage{Ip: ip, Msg: "success"})
-				} else {
-					log.Error("create", name, ip, "error:", createErr)
-					err = clientConn.WriteMessage(&msg.NameResultMessage{Ip: ip, Msg: createErr.Error()})
+				details := make([]msg.NameResultMessageDetails, 0)
+				for _, secret := range config.Secrets {
+					if createErr := secret.Create(ip, name); err == nil {
+						log.Info(secret.GetName(), "create", name, ip, "success")
+						details = append(details, msg.NameResultMessageDetails{Name: secret.GetName(), Ip: ip, Msg: "success"})
+					} else {
+						log.Error(secret.GetName(), "create", name, ip, "error:", createErr)
+						details = append(details, msg.NameResultMessageDetails{Name: secret.GetName(), Ip: ip, Msg: createErr.Error()})
+					}
 				}
+				err = clientConn.WriteMessage(&msg.NameResultMessage{Details: details})
 			}
 		}
 	}
@@ -160,10 +163,13 @@ func newConn(id int, conn *net.TCPConn) {
 				return
 			}
 		}
-		if deleteErr := tencent.Delete(ip); deleteErr == nil {
-			log.Info("delete", name, ip, "success")
-		} else {
-			log.Error("delete", name, ip, "error:", deleteErr)
+		// 删除配置
+		for _, secret := range config.Secrets {
+			if deleteErr := secret.Delete(ip); deleteErr == nil {
+				log.Info(secret.GetName(), "delete", name, ip, "success")
+			} else {
+				log.Error(secret.GetName(), "delete", name, ip, "error:", deleteErr)
+			}
 		}
 	}(ip, name, clientConn.Interval)
 }

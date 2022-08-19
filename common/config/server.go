@@ -1,11 +1,12 @@
 package config
 
 import (
-	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
+	"security-network/common/secret"
 	"strconv"
+	"strings"
 )
 
 var (
@@ -15,19 +16,16 @@ var (
 	PrivateKey         = "config/security/private.pem"
 	SecurityPrivateKey []byte
 
-	InstanceId string
-	SecretId   string
-	SecretKey  string
-
 	TCPInterval = 180
 
-	UDPInterval = 180
+	Secrets = make([]secret.Secret, 0)
 
 	Listener   *net.TCPListener
 	StopAccept = false
 )
 
 func ServerInit() {
+	// 获取监听配置
 	if listenIp := IniFile.Section("listen").Key("ip").String(); listenIp != "" {
 		ListenIp = listenIp
 	}
@@ -40,6 +38,7 @@ func ServerInit() {
 		ListenPort = port
 	}
 
+	// 读取加密配置
 	if securityKey := IniFile.Section("security").Key("key").String(); securityKey != "" {
 		_, err := os.Stat(securityKey)
 		if err != nil {
@@ -54,16 +53,7 @@ func ServerInit() {
 		SecurityPrivateKey = temp
 	}
 
-	if InstanceId = IniFile.Section("secret").Key("instance").String(); InstanceId == "" {
-		panic(fmt.Errorf("place input InstanceId"))
-	}
-	if SecretId = IniFile.Section("secret").Key("id").String(); SecretId == "" {
-		panic(fmt.Errorf("place input SecretId"))
-	}
-	if SecretKey = IniFile.Section("secret").Key("key").String(); SecretKey == "" {
-		panic(fmt.Errorf("place input SecretKey"))
-	}
-
+	// 读取超时配置
 	if tcpInterval := IniFile.Section("tcp").Key("timeout").String(); tcpInterval != "" {
 		interval, err := strconv.Atoi(tcpInterval)
 		if err != nil {
@@ -73,20 +63,17 @@ func ServerInit() {
 		TCPInterval = interval
 	}
 
-	if udpInterval := IniFile.Section("udp").Key("timeout").String(); udpInterval != "" {
-		interval, err := strconv.Atoi(udpInterval)
-		if err != nil {
-			log.Error("tcp interval error:", udpInterval)
-			panic(err)
+	// 加载所有配置文件
+	for _, section := range IniFile.Sections() {
+		if strings.HasPrefix(section.Name(), "secret_") {
+			Secrets = append(Secrets, secret.GetSecret(section))
 		}
-		UDPInterval = interval
 	}
 
 	log.Trace("listen ip   :", ListenIp)
 	log.Trace("listen port :", ListenPort)
 	log.Trace("security key:", PrivateKey)
 	log.Trace("tcp timeout :", TCPInterval)
-	log.Trace("udp timeout :", UDPInterval)
 }
 
 func StopServer() {

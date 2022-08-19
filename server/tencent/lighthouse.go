@@ -1,8 +1,6 @@
 package tencent
 
 import (
-	"security-network/common/config"
-
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common"
 	"github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/common/profile"
 	lighthouse "github.com/tencentcloud/tencentcloud-sdk-go/tencentcloud/lighthouse/v20200324"
@@ -14,17 +12,17 @@ var (
 	Action   = "ACCEPT"
 )
 
-func Create(ip, name string) error {
+func CreateLighthouse(endpoint, region, instanceId, secretId, secretKey, ip, name string) error {
 	credential := common.NewCredential(
-		config.SecretId,
-		config.SecretKey,
+		secretId,
+		secretKey,
 	)
 	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = "lighthouse.tencentcloudapi.com"
-	client, _ := lighthouse.NewClient(credential, "ap-guangzhou", cpf)
+	cpf.HttpProfile.Endpoint = endpoint
+	client, _ := lighthouse.NewClient(credential, region, cpf)
 
 	request := lighthouse.NewCreateFirewallRulesRequest()
-	request.InstanceId = &config.InstanceId
+	request.InstanceId = &instanceId
 	firewallRules := []*lighthouse.FirewallRule{{
 		Protocol:                &Protocol,
 		Port:                    &Port,
@@ -38,17 +36,17 @@ func Create(ip, name string) error {
 	return err
 }
 
-func Delete(ip string) error {
+func DeleteLighthouse(endpoint, region, instanceId, secretId, secretKey, ip string) error {
 	credential := common.NewCredential(
-		config.SecretId,
-		config.SecretKey,
+		secretId,
+		secretKey,
 	)
 	cpf := profile.NewClientProfile()
-	cpf.HttpProfile.Endpoint = "lighthouse.tencentcloudapi.com"
-	client, _ := lighthouse.NewClient(credential, "ap-guangzhou", cpf)
+	cpf.HttpProfile.Endpoint = endpoint
+	client, _ := lighthouse.NewClient(credential, region, cpf)
 
 	request := lighthouse.NewDeleteFirewallRulesRequest()
-	request.InstanceId = &config.InstanceId
+	request.InstanceId = &instanceId
 	firewallRules := []*lighthouse.FirewallRule{{
 		Protocol:  &Protocol,
 		Port:      &Port,
