@@ -3,7 +3,6 @@ package io
 import (
 	"fmt"
 	"net"
-	"security-network/common"
 	"security-network/common/config"
 	"security-network/common/msg"
 	"security-network/common/security"
@@ -45,25 +44,25 @@ func (that *TCP) ReadByLen(maxReadLen int, timeout time.Time) ([]byte, error) {
 
 func (that *TCP) ServerInit(id int) (success bool) {
 	// 接受协议
-	protocol, err := that.ReadByLen(len(common.Protocol), time.Now().Add(8*time.Second))
+	protocol, err := that.ReadByLen(len(config.Protocol), time.Now().Add(8*time.Second))
 	if err != nil {
 		log.Debug(id, "read protocol error", err)
 		return
 	}
 	protocolLen := len(protocol)
-	if string(protocol[:protocolLen-3]) != common.AppName {
+	if string(protocol[:protocolLen-3]) != config.AppName {
 		log.Debug(id, "protocol error")
 		return
 	}
-	clientVersion :=
-		strconv.Itoa(int(protocol[protocolLen-3])) + "." +
-			strconv.Itoa(int(protocol[protocolLen-2])) + "." +
-			strconv.Itoa(int(protocol[protocolLen-1]))
-	log.Trace(id, "client version:", clientVersion)
 
 	// 返回协议结果
-	if _, err = that.Write(common.Protocol); err != nil {
+	if _, err = that.Write(config.Protocol); err != nil {
 		log.Debug(id, "write protocol error", err)
+		return
+	}
+
+	// 版本判断
+	if err = config.CheckVersion(protocol[protocolLen-3], protocol[protocolLen-2], protocol[protocolLen-1]); err != nil {
 		return
 	}
 
@@ -102,27 +101,27 @@ func (that *TCP) ServerInit(id int) (success bool) {
 
 func (that *TCP) ClientInit() (success bool) {
 	// 发送协议
-	if _, err := that.Write(common.Protocol); err != nil {
+	if _, err := that.Write(config.Protocol); err != nil {
 		log.Error("write protocol error", err)
 		return
 	}
 
 	// 接受协议结果
-	protocol, err := that.ReadByLen(len(common.Protocol), time.Now().Add(8*time.Second))
+	protocol, err := that.ReadByLen(len(config.Protocol), time.Now().Add(8*time.Second))
 	if err != nil {
 		log.Debug("read protocol error", err)
 		return
 	}
 	protocolLen := len(protocol)
-	if string(protocol[:protocolLen-3]) != common.AppName {
+	if string(protocol[:protocolLen-3]) != config.AppName {
 		log.Debug("protocol error")
 		return
 	}
-	serverVersion :=
-		strconv.Itoa(int(protocol[protocolLen-3])) + "." +
-			strconv.Itoa(int(protocol[protocolLen-2])) + "." +
-			strconv.Itoa(int(protocol[protocolLen-1]))
-	log.Trace("server version:", serverVersion)
+
+	// 版本判断
+	if err = config.CheckVersion(protocol[protocolLen-3], protocol[protocolLen-2], protocol[protocolLen-1]); err != nil {
+		return
+	}
 
 	// 发送密钥
 	that.Key, that.Iv = security.GenerateAES()

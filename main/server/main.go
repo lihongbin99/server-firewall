@@ -139,6 +139,7 @@ func newConn(id int, conn *net.TCPConn) {
 				clients[id] = Client{ip: ip, name: name}
 				details := make([]msg.NameResultMessageDetails, 0)
 				for _, secret := range config.Secrets {
+					// TODO 区分用户
 					if createErr := secret.Create(ip, name); err == nil {
 						log.Info(secret.GetName(), "create", name, ip, "success")
 						details = append(details, msg.NameResultMessageDetails{Name: secret.GetName(), Ip: ip, Msg: "success"})
@@ -165,6 +166,7 @@ func newConn(id int, conn *net.TCPConn) {
 		}
 		// 删除配置
 		for _, secret := range config.Secrets {
+			// TODO 区分用户
 			if deleteErr := secret.Delete(ip); deleteErr == nil {
 				log.Info(secret.GetName(), "delete", name, ip, "success")
 			} else {
